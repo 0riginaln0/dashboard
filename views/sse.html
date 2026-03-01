@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fixi SSE Example</title>
+    <link rel="icon" href="/static/favicon.ico" />
+    <script src="/static/idiomorph.min.js"></script>
+</head>
+
+<body>
+    <h1>Dashboard!</h1>
+
+    <div id="data-container">
+        Loading...
+    </div>
+
+    <script>
+        const evtSource = new EventSource("/sse_endpoint");
+        evtSource.addEventListener("fixi", (event) => {
+            const { target, swap, text } = JSON.parse(event.data);
+            document.querySelectorAll(target).forEach(async (ele) => {
+                if (ele) {
+                    const cfg = {
+                        target: ele,
+                        swap: swap,
+                        text: text,
+                        transition: document.startViewTransition?.bind(document),
+                    };
+
+                    // Use Idiomorph for morphing instead of direct DOM manipulation
+                    let doSwap = () => {
+                        if (cfg.swap === "morph") { 
+                            Idiomorph.morph(cfg.target, cfg.text, {
+                                morphStyle: "outerHTML",
+                                preserveInputFocus: true,
+                                preserveSelection: true
+                            });
+                        } else if (cfg.swap === "innerMorph") {
+                            Idiomorph.morph(cfg.target, cfg.text, {
+                                morphStyle: "innerHTML",
+                                preserveInputFocus: true,
+                                preserveSelection: true
+                            });
+                        } else if (/(before|after)(begin|end)/.test(cfg.swap)) {
+                            cfg.target.insertAdjacentHTML(cfg.swap, cfg.text);
+                        } else if (cfg.swap in cfg.target) {
+                            cfg.target[cfg.swap] = cfg.text;
+                        } else throw cfg.swap;
+                    };
+                    if (cfg.transition) await cfg.transition(doSwap).finished;
+                    else await doSwap();
+                }
+            });
+        });
+    </script>
+
+    <script src="/static/fixi.js"></script>
+    <script src="/static/_hyperscript.min.js"></script>
+</body>
+
+</html>

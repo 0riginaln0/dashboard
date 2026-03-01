@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What's going on?</title>
+    <link rel="icon" href="/static/favicon.ico" />
+</head>
+
+<body>
+    <h1>Dashboard!</h1>
+
+
+    <div id="data-container">
+        <h2>Server Response</h2>
+        <p>Time: {{ time }}</p>
+    </div>
+
+    <hr>
+    <footer>
+        <p>This website demonstrates three different ways to refresh the content above:</p>
+        <ul class="method-list">
+            <div class="endpoint"><a href="/" target="_blank" rel="noopener"><code>/</code></a></div>
+            <span class="method-name">Traditional full page reload</span> — The current page's method: the entire page
+            is reloaded from the server each time you navigate or refresh.
+            <blockquote>Uses <i>Jinja2</i> templating to render the HTML on the server.</blockquote>
+
+            <div class="endpoint"><a href="/sse" target="_blank" rel="noopener"><code>/sse</code></a></div>
+            <span class="method-name">Server-Sent Events</span> — A persistent connection pushes updates from the server
+            as soon as new data is available. Updates are broadcast to all connected clients simultaneously, so everyone
+            sees the same changes in real time.
+            <blockquote>Uses <i>Fixi</i> & <i>Idiomorph</i> to morph updated content into the page.</blockquote>
+
+            <div class="endpoint"><a href="/poll" target="_blank" rel="noopener"><code>/poll</code></a></div>
+            <span class="method-name">Polling</span> — The browser asks the server for updates every few seconds. + a button to ask for the immediate server update
+            <blockquote>Uses <i>Fixi</i> & <i>Idiomorph</i> & <i>hyperscript</i> to manage polling, DOM updates and
+                dynamic button behaviour.</blockquote>
+
+        </ul>
+        <p>The backend is written in <i>MicroPie</i>, an <i>«async Bottle»</i>.</p>
+    </footer>
+
+</body>
+
+</html>

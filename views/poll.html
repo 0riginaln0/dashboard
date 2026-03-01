@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fixi Polling Example</title>
+    <link rel="icon" href="/static/favicon.ico" />
+    <script src="/static/idiomorph.min.js"></script>
+</head>
+
+<body>
+    <h1>Dashboard!</h1>
+
+    <div id="data-container"
+            fx-action="/poll_endpoint"
+            fx-method="get"
+            fx-target="#data-container"
+            fx-swap="innerMorph"
+            fx-trigger="poll" ext-fx-poll-interval="3000">
+        Loading...
+    </div>
+
+    <button _="on click send poll to #data-container
+               then toggle @disabled for 1s">
+        Update
+    </button>
+
+    <script>
+        // fixi morphing extension  
+        document.addEventListener("fx:config", (evt) => {
+            function morph(cfg, style) {
+                Idiomorph.morph(cfg.target, cfg.text, { morphStyle: style }).forEach((n) => {
+                    // process nodes as morphing existing nodes will not trigger fixi MutationObserver  
+                    n.dispatchEvent(new CustomEvent("fx:process", { bubbles: true }));
+                });
+            }
+            if (evt.detail.cfg.swap == "morph")
+                evt.detail.cfg.swap = (cfg) => morph(cfg, "outerHTML");
+            if (evt.detail.cfg.swap == "innerMorph")
+                evt.detail.cfg.swap = (cfg) => morph(cfg, "innerHTML");
+        });
+
+        // fixi polling extension
+        document.addEventListener("fx:init", (evt) => {
+            let elt = evt.target;
+            if (elt.matches("[ext-fx-poll-interval]")) {
+                // wait for the non-bubbling fx:inited event on the element so the __fixi property is available
+                elt.addEventListener("fx:inited", () => {
+                    // Populate immediately on startup
+                    elt.dispatchEvent(new CustomEvent("poll"));
+                    // Set up polling
+                    elt.__fixi.pollInterval = setInterval(() => {
+                        elt.dispatchEvent(new CustomEvent("poll"));
+                    }, parseInt(elt.getAttribute("ext-fx-poll-interval")));
+                })
+            }
+        });
+    </script>
+
+    <script src="/static/fixi.js"></script>
+    <script src="/static/_hyperscript.min.js"></script>
+</body>
+
+</html>
