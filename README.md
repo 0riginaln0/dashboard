@@ -1,3 +1,7 @@
+# Demo
+
+![A screen record showing several tabs opened with SSE connections, which are updated synchronously, two polling tabs and one tab with templated page](demo.gif)
+
 ## How to start things up:
 
 ```sh
