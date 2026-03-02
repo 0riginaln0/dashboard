@@ -19,6 +19,7 @@ Web framework:
 
 Database access:
 - [PugSQL](https://github.com/mcfunley/pugsql)
+- [aoisql](https://github.com/nackjicholson/aiosql)
 
 Frontend things:
 - [fixi.js](https://github.com/bigskysoftware/fixi)
