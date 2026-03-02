@@ -12,6 +12,24 @@ wheels = [
 ]
 
 [[package]]
+name = "aiosql"
+version = "15.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/dc/31/97ebbd15ead5cf9c3951d6e8dfafc5e7b7e8c52148768cb7b95cd443fc8a/aiosql-15.0.tar.gz", hash = "sha256:744939fdfb3e0c36d88ccaf1f73cb1cf8cc38e7052666b884502db99aff8f3fd", size = 77429, upload-time = "2026-01-04T19:14:41.239Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/28/a4/67a07ed3e827a50671d7248624c1d3666243c580b0b0567c62d12e1c6de7/aiosql-15.0-py3-none-any.whl", hash = "sha256:ba659870914258790da77a999902c0b7712d58754ca2bd335cf2be34a8433b42", size = 26145, upload-time = "2026-01-04T19:14:39.792Z" },
+]
+
+[[package]]
+name = "aiosqlite"
+version = "0.22.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/4e/8a/64761f4005f17809769d23e518d915db74e6310474e733e3593cfc854ef1/aiosqlite-0.22.1.tar.gz", hash = "sha256:043e0bd78d32888c0a9ca90fc788b38796843360c855a7262a532813133a0650", size = 14821, upload-time = "2025-12-23T19:25:43.997Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/00/b7/e3bf5133d697a08128598c8d0abc5e16377b51465a33756de24fa7dee953/aiosqlite-0.22.1-py3-none-any.whl", hash = "sha256:21c002eb13823fad740196c5a2e9d8e62f6243bd9e7e4a1f87fb5e44ecb4fceb", size = 17405, upload-time = "2025-12-23T19:25:42.139Z" },
+]
+
+[[package]]
 name = "argon2-cffi"
 version = "25.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -114,6 +132,8 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "aiofiles" },
+    { name = "aiosql" },
+    { name = "aiosqlite" },
     { name = "argon2-cffi" },
     { name = "micropie", extra = ["all"] },
     { name = "pugsql" },
@@ -122,6 +142,8 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "aiofiles", specifier = ">=25.1.0" },
+    { name = "aiosql", specifier = ">=15.0" },
+    { name = "aiosqlite", specifier = ">=0.22.1" },
     { name = "argon2-cffi", specifier = ">=25.1.0" },
     { name = "micropie", extras = ["all"], specifier = ">=0.28" },
     { name = "pugsql", specifier = ">=0.3.7" },
