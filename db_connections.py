@@ -11,20 +11,26 @@ async def get_connection(db_path: str):
 
 async def setup_database(writer: Connection):
     """Initialize schema and enable WAL."""
+    print(writer.in_transaction)
     await writer.execute("""
         CREATE TABLE IF NOT EXISTS data (
             id INTEGER PRIMARY KEY,
             value TEXT
         )
     """)
+    print(writer.in_transaction)
     await writer.commit()
+    print(writer.in_transaction)
 
 
 async def writer_task(writer: Connection):
     """Example writer that inserts data."""
     for i in range(10):
+        print("before execute", writer.in_transaction)
         await writer.execute("INSERT INTO data (value) VALUES (?)", (f"item_{i}",))
+        print("after execute", writer.in_transaction)
         await writer.commit()
+        print("after commit", writer.in_transaction)
         print(f"Writer committed {i}")
 
 
@@ -37,19 +43,16 @@ async def reader_task(reader: Connection, reader_id):
 
 
 async def main():
-    # Create one writer connection
     writer = await get_connection("mydb.sqlite")
     await setup_database(writer)
     readers = [await get_connection("mydb.sqlite") for _ in range(3)]
-
+    writer.cursor
     try:
-        # Run writer and readers concurrently
         await asyncio.gather(
             writer_task(writer),
             *[reader_task(reader, i) for i, reader in enumerate(readers)],
         )
     finally:
-        # Clean up all connections
         await writer.close()
         for reader in readers:
             await reader.close()
