@@ -7,7 +7,7 @@
 ```sh
 # uv python install <version>
 uv sync
-uvicorn app:app
+uv run app.py
 ```
 
 F5 (Debug: Start Debugging) in VSCode.

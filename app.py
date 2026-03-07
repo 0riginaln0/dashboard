@@ -1,50 +1,18 @@
+# stdlib
 import os
 import json
 import asyncio
 import mimetypes
 from datetime import datetime
-from contextlib import asynccontextmanager
 
+# third-party
 import aiosql
-import aiosqlite
 import aiofiles
 from micropie import App
 import uvicorn
 
-
-async def get_connection(db_path: str):
-    conn = await aiosqlite.connect(db_path)
-    await conn.execute("PRAGMA journal_mode=WAL")
-    return conn
-
-
-class WriterProvider:
-    def __init__(self, connection: aiosqlite.Connection):
-        self._connection = connection
-        self._lock = asyncio.Lock()
-
-    @asynccontextmanager
-    async def acquire(self):
-        await self._lock.acquire()
-        try:
-            yield self._connection
-        finally:
-            self._lock.release()
-
-
-class ReaderProvider:
-    def __init__(self, connections):
-        self._pool = asyncio.Queue()
-        for conn in connections:
-            self._pool.put_nowait(conn)
-
-    @asynccontextmanager
-    async def acquire(self):
-        conn = await self._pool.get()
-        try:
-            yield conn
-        finally:
-            await self._pool.put(conn)
+# local
+from db import get_connection, WriterProvider, ReaderProvider
 
 
 class Root(App):
@@ -59,12 +27,12 @@ class Root(App):
         READERS_CONNECTIONS_COUNT = 3
 
         self._writer_conn = await get_connection(DB_NAME)
-        self.writer_provider = WriterProvider(self._writer_conn)
+        self.db_writer = WriterProvider(self._writer_conn)
 
         self._reader_conns = [
             await get_connection(DB_NAME) for _ in range(READERS_CONNECTIONS_COUNT)
         ]
-        self.reader_provider = ReaderProvider(self._reader_conns)
+        self.db_reader = ReaderProvider(self._reader_conns)
 
         self.broadcast_task = asyncio.create_task(self._broadcast_time())
 
