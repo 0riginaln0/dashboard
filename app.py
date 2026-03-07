@@ -65,31 +65,12 @@ class Root(App):
         except asyncio.CancelledError:
             pass
 
-    async def _views(self, path):
-        file_path = os.path.normpath(os.path.join("views", path))
-        views_dir = os.path.normpath("views")
-        if not file_path.startswith(views_dir):
-            return 403, "Forbidden", []
-
-        if os.path.exists(file_path):
-            content_type, _ = mimetypes.guess_type(file_path)
-            if content_type is None:
-                content_type = "application/octet-stream"
-
-            async def stream_file():
-                async with aiofiles.open(file_path, "rb") as f:
-                    while chunk := await f.read(65536):
-                        yield chunk
-
-            return 200, stream_file(), [("Content-Type", content_type)]
-        return 404, "Not Found", []
-
-    async def static(self, path):
+    async def _serve_file(self, base_dir, path):
         # Normalize the file path to prevent directory traversal
-        file_path = os.path.normpath(os.path.join("static", path))
-        # Ensure the path stays within the 'static' directory
-        static_dir = os.path.normpath("static")
-        if not file_path.startswith(static_dir):
+        file_path = os.path.normpath(os.path.join(base_dir, path))
+        # Ensure the path stays within the specified directory
+        base_dir = os.path.normpath(base_dir)
+        if not file_path.startswith(base_dir):
             return 403, "Forbidden", []
 
         if os.path.exists(file_path):
@@ -106,6 +87,12 @@ class Root(App):
 
             return 200, stream_file(), [("Content-Type", content_type)]
         return 404, "Not Found", []
+
+    async def _views(self, path):
+        return await self._serve_file("views", path)
+
+    async def static(self, path):
+        return await self._serve_file("static", path)
 
     async def index(self):
         return await self._render_template(
