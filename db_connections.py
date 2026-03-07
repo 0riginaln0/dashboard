@@ -1,6 +1,6 @@
 import aiosqlite
 import asyncio
-from aiosqlite import Connection
+from contextlib import asynccontextmanager
 
 
 async def get_connection(db_path: str):
@@ -11,7 +11,7 @@ async def get_connection(db_path: str):
 
 async def setup_database(writer: WriterProvider):
     """Initialize schema and enable WAL."""
-    async with writer as conn:
+    async with writer.acquire() as conn:
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS data (
                 id INTEGER PRIMARY KEY,
@@ -23,7 +23,7 @@ async def setup_database(writer: WriterProvider):
 
 async def writer_task(writer: WriterProvider):
     """Example writer that inserts data."""
-    async with writer as conn:
+    async with writer.acquire() as conn:
         for i in range(10):
             print("before execute", conn.in_transaction)
             await conn.execute("INSERT INTO data (value) VALUES (?)", (f"item_{i}",))
@@ -33,12 +33,12 @@ async def writer_task(writer: WriterProvider):
             print(f"Writer committed {i}")
 
 
-async def reader_task(conn: Connection, reader_id):
-    """Example reader that queries data."""
+async def reader_task(reader_provider: ReaderProvider, reader_id):
     for _ in range(10):
-        async with conn.execute("SELECT * FROM data") as cursor:
-            rows = await cursor.fetchall()
-            print(f"Reader {reader_id} sees {rows} rows")
+        async with reader_provider.acquire() as conn:
+            async with conn.execute("SELECT * FROM data") as cursor:
+                rows = await cursor.fetchall()
+                print(f"Reader {reader_id} sees {rows} rows")
 
 
 class WriterProvider:
@@ -46,28 +46,45 @@ class WriterProvider:
         self._connection = connection
         self._lock = asyncio.Lock()
 
-    async def __aenter__(self):
+    @asynccontextmanager
+    async def acquire(self):
         await self._lock.acquire()
-        return self._connection
+        try:
+            yield self._connection
+        finally:
+            self._lock.release()
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        self._lock.release()
+
+class ReaderProvider:
+    def __init__(self, connections):
+        self._pool = asyncio.Queue()
+        for conn in connections:
+            self._pool.put_nowait(conn)
+
+    @asynccontextmanager
+    async def acquire(self):
+        conn = await self._pool.get()
+        try:
+            yield conn
+        finally:
+            await self._pool.put(conn)
 
 
 async def main():
     writer_conn = await get_connection("mydb.sqlite")
     writer = WriterProvider(writer_conn)
     await setup_database(writer)
-    readers = [await get_connection("mydb.sqlite") for _ in range(3)]
+    reader_conns = [await get_connection("mydb.sqlite") for _ in range(3)]
+    reader_provider = ReaderProvider(reader_conns)
 
     try:
         await asyncio.gather(
             writer_task(writer),
-            *[reader_task(reader, i) for i, reader in enumerate(readers)],
+            *[reader_task(reader_provider, i) for i in range(3)],
         )
     finally:
         await writer_conn.close()
-        for reader_conn in readers:
+        for reader_conn in reader_conns:
             await reader_conn.close()
 
 
