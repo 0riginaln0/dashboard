@@ -20,7 +20,7 @@ class Root(App):
         super().__init__()
         self.clients: set[asyncio.Queue[datetime]] = set()
 
-    async def _startup(self):
+    async def _setup_db(self):
         self.queries = aiosql.from_path("./sql/queries.sql", "aiosqlite")
 
         DB_NAME = "foo.db"
@@ -34,13 +34,17 @@ class Root(App):
         ]
         self.db_reader = ReaderProvider(self._reader_conns)
 
-        self.broadcast_task = asyncio.create_task(self._broadcast_time())
-
-    async def _shutdown(self):
+    async def _close_db(self):
         await self._writer_conn.close()
         for reader_conn in self._reader_conns:
             await reader_conn.close()
 
+    async def _startup(self):
+        await self._setup_db()
+        self.broadcast_task = asyncio.create_task(self._broadcast_time())
+
+    async def _shutdown(self):
+        await self._close_db()
         if self.broadcast_task:
             self.broadcast_task.cancel()
             try:
@@ -168,4 +172,9 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("Server stopped by user.")
+    except Exception as e:
+        print(f"Unexpected error: {e}")
