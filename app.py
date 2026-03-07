@@ -106,7 +106,7 @@ class Root(App):
         async def generator():
             queue: asyncio.Queue[datetime] = asyncio.Queue()
             self.clients.add(queue)
-            await queue.put(datetime.now())
+            queue.put_nowait(datetime.now())
 
             try:
                 while True:
