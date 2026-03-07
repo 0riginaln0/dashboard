@@ -3,31 +3,82 @@ import json
 import asyncio
 import mimetypes
 from datetime import datetime
+from contextlib import asynccontextmanager
 
-import pugsql
+import aiosql
+import aiosqlite
 import aiofiles
 from micropie import App
+import uvicorn
+
+
+async def get_connection(db_path: str):
+    conn = await aiosqlite.connect(db_path)
+    await conn.execute("PRAGMA journal_mode=WAL")
+    return conn
+
+
+class WriterProvider:
+    def __init__(self, connection: aiosqlite.Connection):
+        self._connection = connection
+        self._lock = asyncio.Lock()
+
+    @asynccontextmanager
+    async def acquire(self):
+        await self._lock.acquire()
+        try:
+            yield self._connection
+        finally:
+            self._lock.release()
+
+
+class ReaderProvider:
+    def __init__(self, connections):
+        self._pool = asyncio.Queue()
+        for conn in connections:
+            self._pool.put_nowait(conn)
+
+    @asynccontextmanager
+    async def acquire(self):
+        conn = await self._pool.get()
+        try:
+            yield conn
+        finally:
+            await self._pool.put(conn)
 
 
 class Root(App):
     def __init__(self):
         super().__init__()
         self.clients: set[asyncio.Queue[datetime]] = set()
-        self.broadcast_task = None
 
     async def _startup(self):
+        self.queries = aiosql.from_path("./sql/queries.sql", "aiosqlite")
+
+        DB_NAME = "foo.db"
+        READERS_CONNECTIONS_COUNT = 3
+
+        self._writer_conn = await get_connection(DB_NAME)
+        self.writer_provider = WriterProvider(self._writer_conn)
+
+        self._reader_conns = [
+            await get_connection(DB_NAME) for _ in range(READERS_CONNECTIONS_COUNT)
+        ]
+        self.reader_provider = ReaderProvider(self._reader_conns)
+
         self.broadcast_task = asyncio.create_task(self._broadcast_time())
-        self.queries = pugsql.module("sql")
-        self.queries.connect("sqlite:///foo.db")
 
     async def _shutdown(self):
+        await self._writer_conn.close()
+        for reader_conn in self._reader_conns:
+            await reader_conn.close()
+
         if self.broadcast_task:
             self.broadcast_task.cancel()
             try:
                 await self.broadcast_task
             except asyncio.CancelledError:
                 pass
-        self.queries.disconnect()
 
     async def _broadcast_time(self):
         try:
@@ -140,3 +191,13 @@ class Root(App):
 app = Root()
 app.startup_handlers.append(app._startup)
 app.shutdown_handlers.append(app._shutdown)
+
+
+async def main():
+    config = uvicorn.Config("app:app")
+    server = uvicorn.Server(config)
+    await server.serve()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

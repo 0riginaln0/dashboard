@@ -18,7 +18,6 @@ Web framework:
 - [MicroPie](https://github.com/patx/micropie)
 
 Database access:
-- [PugSQL](https://github.com/mcfunley/pugsql)
 - [aoisql](https://github.com/nackjicholson/aiosql)
 
 Frontend things:
