@@ -72,14 +72,14 @@ class ReaderProvider:
 
 async def main():
     writer_conn = await get_connection("mydb.sqlite")
-    writer = WriterProvider(writer_conn)
-    await setup_database(writer)
+    writer_provider = WriterProvider(writer_conn)
+    await setup_database(writer_provider)
     reader_conns = [await get_connection("mydb.sqlite") for _ in range(3)]
     reader_provider = ReaderProvider(reader_conns)
 
     try:
         await asyncio.gather(
-            writer_task(writer),
+            writer_task(writer_provider),
             *[reader_task(reader_provider, i) for i in range(3)],
         )
     finally:
