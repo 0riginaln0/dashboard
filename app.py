@@ -4,6 +4,7 @@ import json
 import asyncio
 import mimetypes
 from datetime import datetime
+from textwrap import dedent
 
 # third-party
 import aiosql
@@ -111,10 +112,10 @@ class Root(App):
             try:
                 while True:
                     now = await queue.get()
-                    html_content = f"""
-                    <h2>Server Response</h2>
-                    <p>Time: {now.strftime("%Y-%m-%d %H:%M:%S.%f")}</p>
-                    """
+                    html_content = dedent(f"""\
+                                           <h2>Server Response</h2>
+                                           <p>Time: {now.strftime("%Y-%m-%d %H:%M:%S.%f")}</p>
+                                           """)
                     event_data = {
                         "target": "#data-container",
                         "swap": "innerMorph",
@@ -141,10 +142,10 @@ class Root(App):
 
     async def poll_endpoint(self):
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
-        return f"""
-        <h2>Server Response</h2>
-        <p>Time: {current_time}</p>
-        """
+        return dedent(f"""\
+                       <h2>Server Response</h2>
+                       <p>Time: {current_time}</p>
+                       """)
 
 
 app = Root()
