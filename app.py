@@ -113,9 +113,9 @@ class Root(App):
                 while True:
                     now = await queue.get()
                     html_content = dedent(f"""\
-                                           <h2>Server Response</h2>
-                                           <p>Time: {now.strftime("%Y-%m-%d %H:%M:%S.%f")}</p>
-                                           """)
+                        <h2>Server Response</h2>
+                        <p>Time: {now.strftime("%Y-%m-%d %H:%M:%S.%f")}</p>
+                    """)
                     event_data = {
                         "target": "#data-container",
                         "swap": "innerMorph",
@@ -143,9 +143,9 @@ class Root(App):
     async def poll_endpoint(self):
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
         return dedent(f"""\
-                       <h2>Server Response</h2>
-                       <p>Time: {current_time}</p>
-                       """)
+            <h2>Server Response</h2>
+            <p>Time: {current_time}</p>
+        """)
 
 
 app = Root()
