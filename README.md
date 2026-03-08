@@ -10,8 +10,6 @@ uv sync
 uv run app.py
 ```
 
-F5 (Debug: Start Debugging) in VSCode.
-
 ## Dependencies
 
 Web framework:
