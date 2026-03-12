@@ -58,7 +58,7 @@ class Root(App):
             while True:
                 await asyncio.sleep(1)
                 now = datetime.now()
-                for queue in list(self.clients):
+                for queue in self.clients.copy():
                     try:
                         await queue.put(now)
                     except Exception:
