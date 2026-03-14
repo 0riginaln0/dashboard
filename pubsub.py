@@ -22,7 +22,7 @@ class PubSub:
         """Unsubscribe a specific queue from a topic."""
         async with self._lock:
             self._topics[topic].discard(queue)
-            # Optionally clean up empty sets
+            # Delete topic if no listeners left
             if not self._topics[topic]:
                 del self._topics[topic]
 
@@ -30,7 +30,6 @@ class PubSub:
         """Broadcast a message to all subscribers of a topic."""
         async with self._lock:
             queues = list(self._topics.get(topic, set()))
-        print(len(queues))
         for q in queues:
             try:
                 q.put_nowait(message)
@@ -38,10 +37,10 @@ class PubSub:
                 # Handle slow consumers – you might want to drop or log
                 pass
 
-    async def broadcast_from(self, topic: str, message: Any, exclude_queue: asyncio.Queue):
+    async def broadcast_from(self, sender: asyncio.Queue, topic: str, message: Any):
         """Broadcast to all subscribers except the given queue."""
         async with self._lock:
-            queues = [q for q in self._topics.get(topic, set()) if q is not exclude_queue]
+            queues = [q for q in self._topics.get(topic, set()) if q is not sender]
         for q in queues:
             try:
                 q.put_nowait(message)
