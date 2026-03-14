@@ -75,8 +75,8 @@ async def main():
     topic, msg = await queue_all.get()
     print(f"   queue_all got: ({topic}, {msg!r})")
 
-    # 5. Slow consumer missess messages
-    print("5. Slow consumer missess messages:")
+    # 5. Slow consumer misses messages
+    print("5. Slow consumer misses messages:")
     await pubsub.broadcast("System alert 1", "alerts")
     await pubsub.broadcast("System alert 2", "alerts")
     await pubsub.broadcast("System alert 3", "alerts")
@@ -252,5 +252,6 @@ class PubSub:
         try:
             subscriber.put_nowait((topic, message))
         except asyncio.QueueFull, asyncio.QueueShutDown:
+            print("as")
             # Handle slow consumers – you might want to drop or log
             pass
