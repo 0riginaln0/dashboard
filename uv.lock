@@ -136,6 +136,7 @@ dependencies = [
     { name = "aiosqlite" },
     { name = "argon2-cffi" },
     { name = "micropie", extra = ["all"] },
+    { name = "phoenix-pubsub" },
     { name = "pytest" },
 ]
 
@@ -146,6 +147,7 @@ requires-dist = [
     { name = "aiosqlite", specifier = ">=0.22.1" },
     { name = "argon2-cffi", specifier = ">=25.1.0" },
     { name = "micropie", extras = ["all"], specifier = ">=0.28" },
+    { name = "phoenix-pubsub", specifier = ">=0.2.0" },
     { name = "pytest", specifier = ">=9.0.2" },
 ]
 
@@ -265,6 +267,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/65/ee/299d360cdc32edc7d2cf530f3accf79c4fca01e96ffc950d8a52213bd8e4/packaging-26.0.tar.gz", hash = "sha256:00243ae351a257117b6a241061796684b084ed1c516a08c48a3f7e147a9d80b4", size = 143416, upload-time = "2026-01-21T20:50:39.064Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b7/b9/c538f279a4e237a006a2c98387d081e9eb060d203d8ed34467cc0f0b9b53/packaging-26.0-py3-none-any.whl", hash = "sha256:b36f1fef9334a5588b4166f8bcd26a14e521f2b55e6b9de3aaa80d3ff7a37529", size = 74366, upload-time = "2026-01-21T20:50:37.788Z" },
+]
+
+[[package]]
+name = "phoenix-pubsub"
+version = "0.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/90/bc/385f8f2199aecd34580461ca52fa54f67531091a556a531f251199c7ea65/phoenix_pubsub-0.2.0.tar.gz", hash = "sha256:5978c6df2a8600856092a4aacbaab272536b043ad49edefa8e0aeb70b4760ffe", size = 3749, upload-time = "2026-03-14T15:59:17.566Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c9/0a/4339c0c968d6ebc01ec7430d112a572dd4fb9f08c511d2f45dd48ee6cc7a/phoenix_pubsub-0.2.0-py3-none-any.whl", hash = "sha256:a912aca74e0eb2d2e4fafa60e75329986af6b19e6ef2c30c652be638e2cb38c0", size = 5481, upload-time = "2026-03-14T15:59:18.593Z" },
 ]
 
 [[package]]

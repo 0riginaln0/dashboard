@@ -23,6 +23,9 @@ Frontend things:
 - [_hyperscript](https://github.com/bigskysoftware/_hyperscript)
 - [Idiomorph](https://github.com/bigskysoftware/idiomorph)
 
+Miscellaneous:
+- [Phoenix PubSub](https://github.com/0riginaln0/phoenix-pubsub)
+
 ## Development
 
 Package & Project manager:

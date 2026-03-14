@@ -14,7 +14,7 @@ import uvicorn
 
 # local
 from db import get_connection, WriterProvider, ReaderProvider
-from pubsub import PubSub
+from phoenix_pubsub import PubSub
 
 pubsub = PubSub()
 
