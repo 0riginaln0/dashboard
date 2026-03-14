@@ -60,7 +60,7 @@ class Root(App):
             while True:
                 await asyncio.sleep(1)
                 now = datetime.now()
-                await pubsub.broadcast("time", now)
+                await pubsub.broadcast(now, "time")
         except asyncio.CancelledError:
             pass
 
