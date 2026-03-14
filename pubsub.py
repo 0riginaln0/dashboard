@@ -3,8 +3,8 @@ from collections import defaultdict
 from typing import Any, Dict, Set
 
 Topic = str
-Listener = asyncio.Queue
-Registry = Dict[Topic, Set[Listener]]
+Subscriber = asyncio.Queue
+Registry = Dict[Topic, Set[Subscriber]]
 
 
 class PubSub:
