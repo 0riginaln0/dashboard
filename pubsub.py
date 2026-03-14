@@ -1,5 +1,104 @@
 """
 PubSub Module - A lightweight, topic-based publish-subscribe system for asyncio applications.
+
+### Usage:
+```
+from pubsub import PubSub
+import asyncio
+
+pubsub = PubSub()
+
+
+async def main():
+    # Create subscriber queues
+    queue_alerts = asyncio.Queue()
+    queue_news = asyncio.Queue()
+    queue_all = asyncio.Queue()  # listens to multiple topics
+    queue_publisher = asyncio.Queue()
+    queue_slow = asyncio.Queue(maxsize=1)  # will demonstrate dropped messages
+
+    # Subscribe to topics
+    await pubsub.subscribe(queue_alerts, "alerts")
+    await pubsub.subscribe(queue_news, "news")
+    await pubsub.subscribe(queue_all, "alerts", "news", "sports", "chat")
+    await pubsub.subscribe(queue_publisher, "chat")
+    await pubsub.subscribe(queue_slow, "alerts")
+
+    # 1. Broadcast to a single topic
+    print("1. Broadcasting to 'alerts' only:")
+    await pubsub.broadcast("System alert!", "alerts")
+    topic, msg = await queue_alerts.get()
+    print(f"   queue_alerts got: ({topic}, {msg!r})")  # (alerts, 'System alert!')
+    topic, msg = await queue_all.get()
+    print(f"   queue_all got:    ({topic}, {msg!r})")
+    topic, msg = await queue_slow.get()
+    print(f"   queue_slow got:   ({topic}, {msg!r})")
+
+    # 2. Broadcast to multiple topics
+    print("2. Broadcasting to 'news' and 'sports':")
+    await pubsub.broadcast("Score update", "news", "sports")
+
+    topic, msg = await queue_news.get()
+    print(f"   queue_news got: ({topic}, {msg!r})")
+
+    # queue_all receives both messages (order may vary, but we can get two)
+    topic, msg = await queue_all.get()
+    print(f"   queue_all got:  ({topic}, {msg!r})")
+    topic, msg = await queue_all.get()
+    print(f"   queue_all got:  ({topic}, {msg!r})")
+
+    # 3. Broadcast from a publisher (exclude itself)
+    print("3. Broadcasting from 'publisher' to 'chat' (excludes publisher):")
+    await pubsub.broadcast_from(queue_publisher, "Hello everyone!", "chat")
+    topic, msg = await queue_all.get()
+    print(f"   queue_all got:  ({topic}, {msg!r})")
+    try:
+        # Prove no message arrives
+        topic, msg = await asyncio.wait_for(queue_publisher.get(), timeout=0.1)
+        print(f"   queue_publisher got (UNEXPECTED): ({topic}, {msg!r})")
+    except asyncio.TimeoutError:
+        print("   queue_publisher correctly received nothing")
+
+    # 4. Unsubscribe and verify no further messages
+    print("4. Unsubscribing queue_news from 'news' and broadcasting again:")
+    await pubsub.unsubscribe(queue_news, "news")
+    await pubsub.broadcast("Late news", "news")
+
+    # queue_news should not receive anything
+    try:
+        topic, msg = await asyncio.wait_for(queue_news.get(), timeout=0.1)
+        print(f"   queue_news got (UNEXPECTED): ({topic}, {msg!r})")
+    except asyncio.TimeoutError:
+        print("   queue_news correctly received nothing")
+
+    # queue_all still receives because it's still subscribed
+    topic, msg = await queue_all.get()
+    print(f"   queue_all got: ({topic}, {msg!r})")
+
+    # 5. Slow consumer missess messages
+    print("5. Slow consumer missess messages:")
+    await pubsub.broadcast("System alert 1", "alerts")
+    await pubsub.broadcast("System alert 2", "alerts")
+    await pubsub.broadcast("System alert 3", "alerts")
+    topic, msg = await queue_alerts.get()
+    print(f"   queue_alerts got: ({topic}, {msg!r})")
+    topic, msg = await queue_alerts.get()
+    print(f"   queue_alerts got: ({topic}, {msg!r})")
+    topic, msg = await queue_alerts.get()
+    print(f"   queue_alerts got: ({topic}, {msg!r})")
+    topic, msg = await queue_slow.get()
+    print(f"   queue_slow got:   ({topic}, {msg!r})")
+    try:
+        # Prove no further message arrives
+        topic, msg = await asyncio.wait_for(queue_slow.get(), timeout=0.1)
+        print(f"   queue_slow got (UNEXPECTED): ({topic}, {msg!r})")
+    except asyncio.TimeoutError:
+        print("   queue_slow correctly drops further messages")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
 """
 
 import asyncio
@@ -18,23 +117,6 @@ class PubSub:
     Attributes:
         _topics (Registry): Dictionary mapping topics to sets of subscriber queues
         _lock (asyncio.Lock): Lock for thread-safe operations on the registry
-
-    Example:
-        ```python
-        pubsub = PubSub()
-
-        # Multiple subscribers can listen to the same topic
-        queue1 = asyncio.Queue()
-        queue2 = asyncio.Queue()
-        await pubsub.subscribe(queue1, "alerts")
-        await pubsub.subscribe(queue2, "alerts")
-
-        # Broadcast to all subscribers
-        await pubsub.broadcast("System alert!", "alerts")
-
-        # First subscriber receives: ("alerts", "System alert!")
-        # Second subscriber receives: ("alerts", "System alert!")
-        ```
     """
 
     def __init__(self):
@@ -101,13 +183,11 @@ class PubSub:
 
         Example:
             ```python
-            # Broadcast simple string
             await pubsub.broadcast("Hello world!", "greetings")
+            # Subscribers receive: ("greetings", "Hello world!")
 
-            # Broadcast structured data to multiple topics
             data = {"sensor": "temperature", "value": 23.5, "unit": "celsius"}
             await pubsub.broadcast(data, "telemetry", "monitoring")
-
             # Subscribers receive: ("telemetry", data)
             #                      ("monitoring", data)
             ```
@@ -141,17 +221,18 @@ class PubSub:
 
         Example:
             ```python
-            # Publisher that also listens to its own topic
             publisher_queue = asyncio.Queue()
+            chat_queue = asyncio.Queue()
             await pubsub.subscribe(publisher_queue, "chat")
+            await pubsub.subscribe(chat, "chat")
 
-            # Broadcast to all other chat subscribers
             await pubsub.broadcast_from(
                 publisher_queue,
                 "User joined the channel",
                 "chat"
             )
-            # Publisher doesn't receive this message
+            # chat_queue receives ("chat", "User joined the channel")
+            # publisher_queue doesn't receive this message
             ```
         """
         topic_subscribers = []
