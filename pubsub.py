@@ -252,6 +252,5 @@ class PubSub:
         try:
             subscriber.put_nowait((topic, message))
         except asyncio.QueueFull, asyncio.QueueShutDown:
-            print("as")
             # Handle slow consumers – you might want to drop or log
             pass
