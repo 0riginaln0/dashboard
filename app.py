@@ -18,6 +18,7 @@ from pubsub import PubSub
 
 pubsub = PubSub()
 
+
 class Root(App):
     def __init__(self):
         super().__init__()
@@ -101,14 +102,17 @@ class Root(App):
         return await self._views("sse.html")
 
     async def sse_endpoint(self):
-        me = await pubsub.subscribe("time")
+        time_topic = "time"
+        inbox = asyncio.Queue()
+        await pubsub.subscribe(time_topic, inbox)
 
         async def generator():
-            me.put_nowait(datetime.now())
+            inbox.put_nowait((time_topic, datetime.now()))
 
             try:
                 while True:
-                    now = await me.get()
+                    _topic, now = await inbox.get()
+
                     html_content = dedent(f"""\
                         <h2>Server Response</h2>
                         <p>Time: {now.strftime("%Y-%m-%d %H:%M:%S.%f")}</p>
@@ -122,7 +126,7 @@ class Root(App):
             except asyncio.CancelledError:
                 print("Client disconnected")
             finally:
-                await pubsub.unsubscribe("time", me)
+                await pubsub.unsubscribe("time", inbox)
 
         return (
             200,
