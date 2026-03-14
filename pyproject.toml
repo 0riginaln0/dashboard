@@ -10,6 +10,5 @@ dependencies = [
     "aiosqlite>=0.22.1",
     "argon2-cffi>=25.1.0",
     "micropie[all]>=0.28",
-    "phoenix-pubsub>=0.2.0",
-    "pytest>=9.0.2",
+    "phoenix-pubsub>=0.4.1",
 ]
