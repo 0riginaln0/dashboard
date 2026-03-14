@@ -112,6 +112,8 @@ class Root(App):
             try:
                 while True:
                     _topic, now = await inbox.get()
+                    if _topic != time_topic:
+                        continue
 
                     html_content = dedent(f"""\
                         <h2>Server Response</h2>
