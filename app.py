@@ -60,11 +60,6 @@ class Root(App):
                 await asyncio.sleep(1)
                 now = datetime.now()
                 await pubsub.broadcast("time", now)
-                # for queue in list(self.clients):
-                #     try:
-                #         await queue.put(now)
-                #     except Exception:
-                #         self.clients.discard(queue)
         except asyncio.CancelledError:
             pass
 
