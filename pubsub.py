@@ -239,7 +239,7 @@ class PubSub:
         async with self._lock:
             for topic in topics:
                 subscribers = [
-                    q for q in self._topics.get(topic, set()) if q is not publisher
+                    s for s in self._topics.get(topic, set()) if s is not publisher
                 ]
                 if subscribers:
                     topic_subscribers.append((topic, subscribers))
