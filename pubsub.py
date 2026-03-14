@@ -1,21 +1,20 @@
 """
 PubSub Module - A topic-based publish-subscribe system for asyncio applications.
 
-### Usage:
 ```
-from pubsub import PubSub
 import asyncio
+from pubsub import PubSub
+import pytest
 
-pubsub = PubSub()
+async def test_pubsub():
+    pubsub = PubSub()
 
-
-async def main():
     # Create subscriber queues
     queue_alerts = asyncio.Queue()
     queue_news = asyncio.Queue()
-    queue_all = asyncio.Queue()  # listens to multiple topics
+    queue_all = asyncio.Queue()          # listens to multiple topics
     queue_publisher = asyncio.Queue()
-    queue_slow = asyncio.Queue(maxsize=1)  # will demonstrate dropped messages
+    queue_slow = asyncio.Queue(maxsize=1) # will demonstrate dropped messages
 
     # Subscribe to topics
     await pubsub.subscribe(queue_alerts, "alerts")
@@ -25,79 +24,88 @@ async def main():
     await pubsub.subscribe(queue_slow, "alerts")
 
     # 1. Broadcast to a single topic
-    print("1. Broadcasting to 'alerts' only:")
     await pubsub.broadcast("System alert!", "alerts")
+
+    # queue_alerts should receive it
     topic, msg = await queue_alerts.get()
-    print(f"   queue_alerts got: ({topic}, {msg!r})")  # (alerts, 'System alert!')
+    assert topic == "alerts"
+    assert msg == "System alert!"
+
+    # queue_all should receive it
     topic, msg = await queue_all.get()
-    print(f"   queue_all got:    ({topic}, {msg!r})")
+    assert topic == "alerts"
+    assert msg == "System alert!"
+
+    # queue_slow should receive it
     topic, msg = await queue_slow.get()
-    print(f"   queue_slow got:   ({topic}, {msg!r})")
+    assert topic == "alerts"
+    assert msg == "System alert!"
 
     # 2. Broadcast to multiple topics
-    print("2. Broadcasting to 'news' and 'sports':")
     await pubsub.broadcast("Score update", "news", "sports")
 
+    # queue_news receives the news message
     topic, msg = await queue_news.get()
-    print(f"   queue_news got: ({topic}, {msg!r})")
+    assert topic == "news"
+    assert msg == "Score update"
 
-    # queue_all receives both messages (order may vary, but we can get two)
-    topic, msg = await queue_all.get()
-    print(f"   queue_all got:  ({topic}, {msg!r})")
-    topic, msg = await queue_all.get()
-    print(f"   queue_all got:  ({topic}, {msg!r})")
+    # queue_all receives both messages
+    received = []
+    for _ in range(2):
+        topic, msg = await queue_all.get()
+        received.append((topic, msg))
+    expected_msgs = {("news", "Score update"), ("sports", "Score update")}
+    assert set(received) == expected_msgs
 
     # 3. Broadcast from a publisher (exclude itself)
-    print("3. Broadcasting from 'publisher' to 'chat' (excludes publisher):")
     await pubsub.broadcast_from(queue_publisher, "Hello everyone!", "chat")
+
+    # queue_all receives it
     topic, msg = await queue_all.get()
-    print(f"   queue_all got:  ({topic}, {msg!r})")
-    try:
-        # Prove no message arrives
-        topic, msg = await asyncio.wait_for(queue_publisher.get(), timeout=0.1)
-        print(f"   queue_publisher got (UNEXPECTED): ({topic}, {msg!r})")
-    except asyncio.TimeoutError:
-        print("   queue_publisher correctly received nothing")
+    assert topic == "chat"
+    assert msg == "Hello everyone!"
+
+    # queue_publisher should NOT receive it
+    with pytest.raises(asyncio.TimeoutError):  # or use try/except if not using pytest
+        await asyncio.wait_for(queue_publisher.get(), timeout=0.1)
 
     # 4. Unsubscribe and verify no further messages
-    print("4. Unsubscribing queue_news from 'news' and broadcasting again:")
     await pubsub.unsubscribe(queue_news, "news")
     await pubsub.broadcast("Late news", "news")
 
-    # queue_news should not receive anything
-    try:
-        topic, msg = await asyncio.wait_for(queue_news.get(), timeout=0.1)
-        print(f"   queue_news got (UNEXPECTED): ({topic}, {msg!r})")
-    except asyncio.TimeoutError:
-        print("   queue_news correctly received nothing")
+    # queue_news should NOT receive anything
+    with pytest.raises(asyncio.TimeoutError):
+        await asyncio.wait_for(queue_news.get(), timeout=0.1)
 
     # queue_all still receives because it's still subscribed
     topic, msg = await queue_all.get()
-    print(f"   queue_all got: ({topic}, {msg!r})")
+    assert topic == "news"
+    assert msg == "Late news"
 
     # 5. Slow consumer misses messages
-    print("5. Slow consumer misses messages:")
     await pubsub.broadcast("System alert 1", "alerts")
     await pubsub.broadcast("System alert 2", "alerts")
     await pubsub.broadcast("System alert 3", "alerts")
-    topic, msg = await queue_alerts.get()
-    print(f"   queue_alerts got: ({topic}, {msg!r})")
-    topic, msg = await queue_alerts.get()
-    print(f"   queue_alerts got: ({topic}, {msg!r})")
-    topic, msg = await queue_alerts.get()
-    print(f"   queue_alerts got: ({topic}, {msg!r})")
-    topic, msg = await queue_slow.get()
-    print(f"   queue_slow got:   ({topic}, {msg!r})")
-    try:
-        # Prove no further message arrives
-        topic, msg = await asyncio.wait_for(queue_slow.get(), timeout=0.1)
-        print(f"   queue_slow got (UNEXPECTED): ({topic}, {msg!r})")
-    except asyncio.TimeoutError:
-        print("   queue_slow correctly drops further messages")
 
+    # queue_alerts receives all three
+    for i in range(1, 4):
+        topic, msg = await asyncio.wait_for(queue_alerts.get(), timeout=0.1)
+        assert topic == "alerts"
+        assert msg == f"System alert {i}"
+
+    # queue_slow receives only the first alert (the rest are dropped because its queue is full)
+    topic, msg = await queue_slow.get()
+    assert topic == "alerts"
+    assert msg == "System alert 1"
+
+    # No second message arrives
+    with pytest.raises(asyncio.TimeoutError):
+        await asyncio.wait_for(queue_slow.get(), timeout=0.1)
+
+    print("All tests passed!")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(test_pubsub())
 ```
 """
 
