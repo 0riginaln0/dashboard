@@ -1,5 +1,5 @@
 """
-PubSub Module - A lightweight, topic-based publish-subscribe system for asyncio applications.
+PubSub Module - A topic-based publish-subscribe system for asyncio applications.
 
 ### Usage:
 ```
