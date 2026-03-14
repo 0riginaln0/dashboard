@@ -12,15 +12,15 @@ class PubSub:
         self._topics: Registry = defaultdict(set)
         self._lock = asyncio.Lock()
 
-    async def subscribe(self, topic: str, queue: asyncio.Queue):
+    async def subscribe(self, subscriber: asyncio.Queue, topic: str):
         """Subscribe caller to a topic."""
         async with self._lock:
-            self._topics[topic].add(queue)
+            self._topics[topic].add(subscriber)
 
-    async def unsubscribe(self, topic: str, queue: asyncio.Queue):
+    async def unsubscribe(self, subscriber: asyncio.Queue, topic: str):
         """Unsubscribe a specific queue from a topic."""
         async with self._lock:
-            self._topics[topic].discard(queue)
+            self._topics[topic].discard(subscriber)
             # Delete topic if no listeners left
             if not self._topics[topic]:
                 del self._topics[topic]
@@ -36,10 +36,10 @@ class PubSub:
                 # Handle slow consumers – you might want to drop or log
                 pass
 
-    async def broadcast_from(self, sender: asyncio.Queue, topic: str, message: Any):
+    async def broadcast_from(self, publisher: asyncio.Queue, topic: str, message: Any):
         """Broadcast to all subscribers except the given queue."""
         async with self._lock:
-            queues = [q for q in self._topics.get(topic, set()) if q is not sender]
+            queues = [q for q in self._topics.get(topic, set()) if q is not publisher]
         for q in queues:
             try:
                 q.put_nowait((topic, message))

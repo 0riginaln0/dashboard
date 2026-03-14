@@ -104,7 +104,7 @@ class Root(App):
     async def sse_endpoint(self):
         time_topic = "time"
         inbox = asyncio.Queue()
-        await pubsub.subscribe(time_topic, inbox)
+        await pubsub.subscribe(inbox, time_topic)
 
         async def generator():
             inbox.put_nowait((time_topic, datetime.now()))
@@ -128,7 +128,7 @@ class Root(App):
             except asyncio.CancelledError:
                 print("Client disconnected")
             finally:
-                await pubsub.unsubscribe("time", inbox)
+                await pubsub.unsubscribe(inbox, "time")
 
         return (
             200,
