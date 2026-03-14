@@ -1,0 +1,49 @@
+import asyncio
+from collections import defaultdict
+from typing import Any, Dict, Set
+
+Topic = str
+Listener = asyncio.Queue
+Registry = Dict[Topic, Set[Listener]]
+
+class PubSub:
+    def __init__(self):
+        self._topics: Registry = defaultdict(set)
+        self._lock = asyncio.Lock()
+
+    async def subscribe(self, topic: str) -> asyncio.Queue:
+        """Subscribe caller to a topic, returning a queue for receiving messages."""
+        listener = asyncio.Queue()
+        async with self._lock:
+            self._topics[topic].add(listener)
+        return listener
+
+    async def unsubscribe(self, topic: str, queue: asyncio.Queue):
+        """Unsubscribe a specific queue from a topic."""
+        async with self._lock:
+            self._topics[topic].discard(queue)
+            # Optionally clean up empty sets
+            if not self._topics[topic]:
+                del self._topics[topic]
+
+    async def broadcast(self, topic: str, message: Any):
+        """Broadcast a message to all subscribers of a topic."""
+        async with self._lock:
+            queues = list(self._topics.get(topic, set()))
+        print(len(queues))
+        for q in queues:
+            try:
+                q.put_nowait(message)
+            except asyncio.QueueFull:
+                # Handle slow consumers – you might want to drop or log
+                pass
+
+    async def broadcast_from(self, topic: str, message: Any, exclude_queue: asyncio.Queue):
+        """Broadcast to all subscribers except the given queue."""
+        async with self._lock:
+            queues = [q for q in self._topics.get(topic, set()) if q is not exclude_queue]
+        for q in queues:
+            try:
+                q.put_nowait(message)
+            except asyncio.QueueFull:
+                pass

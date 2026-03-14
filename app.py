@@ -14,12 +14,13 @@ import uvicorn
 
 # local
 from db import get_connection, WriterProvider, ReaderProvider
+from pubsub import PubSub
 
+pubsub = PubSub()
 
 class Root(App):
     def __init__(self):
         super().__init__()
-        self.clients: set[asyncio.Queue[datetime]] = set()
 
     async def _setup_db(self):
         self.queries = aiosql.from_path("./sql/queries.sql", "aiosqlite")
@@ -58,11 +59,12 @@ class Root(App):
             while True:
                 await asyncio.sleep(1)
                 now = datetime.now()
-                for queue in list(self.clients):
-                    try:
-                        await queue.put(now)
-                    except Exception:
-                        self.clients.discard(queue)
+                await pubsub.broadcast("time", now)
+                # for queue in list(self.clients):
+                #     try:
+                #         await queue.put(now)
+                #     except Exception:
+                #         self.clients.discard(queue)
         except asyncio.CancelledError:
             pass
 
@@ -104,14 +106,14 @@ class Root(App):
         return await self._views("sse.html")
 
     async def sse_endpoint(self):
+        me = await pubsub.subscribe("time")
+
         async def generator():
-            queue: asyncio.Queue[datetime] = asyncio.Queue()
-            self.clients.add(queue)
-            queue.put_nowait(datetime.now())
+            me.put_nowait(datetime.now())
 
             try:
                 while True:
-                    now = await queue.get()
+                    now = await me.get()
                     html_content = dedent(f"""\
                         <h2>Server Response</h2>
                         <p>Time: {now.strftime("%Y-%m-%d %H:%M:%S.%f")}</p>
@@ -125,7 +127,7 @@ class Root(App):
             except asyncio.CancelledError:
                 print("Client disconnected")
             finally:
-                self.clients.discard(queue)
+                await pubsub.unsubscribe("time", me)
 
         return (
             200,
